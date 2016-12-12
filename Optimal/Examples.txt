@@ -91,4 +91,6 @@ HE
 
  F  D' L  F' D  R2 L2 U' B  L' U  B'  (14q*, 12f)
 dvs  (F D') L (F' D) (R2 L2) (U' B) L' (U  B')
+den normale er
+     (F' D) R' (F D') M2 (D F') R' (D' F)
 
