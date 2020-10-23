@@ -1,0 +1,96 @@
+Solved
+     UF UR UB UL DF DR DB DL FR FL BR BL UFR URB UBL ULF DRF DFL DLB DBR
+
+
+Pons
+     DB DL DF DR UB UL UF UR BL BR FL FR UFR URB UBL ULF DRF DFL DLB DBR
+
+Blind corner swap
+     UF UB UR UL DF DR DB DL FR FL BR BL UFR FUL UBL RBU DRF DFL DLB DBR
+
+Test01
+     UF UB UR UL DF DR DB DL FR FL BR BL UFR DFL UBL ULF DRF URB DLB DBR
+
+
+ F  R' F  D  F  D' F  L' F  R  U  F' L   (13q*, 13f)
+ F  U  F' L2 B  L  B2 U  B  U' L   (13q*, 11f)
+ F  U  F' L2 B  D' B  D  B2 L2  (13q*, 10f)
+ F  U  F' L' U  B2 R  B  R' B  U' L   (13q*, 12f)
+ F  U' F' U  L  F  R' F  R  F  L' F  U   (13q*, 13f)
+ F  U' R  U  R2 F  R  F2 L' U  L   (13q*, 11f)
+ F  U' R  B' R  B  R2 U  F' L' U  L   (13q*, 12f)
+ F  L' U  B  L  F' L  D' L  D  L  B' L   (13q*, 13f)
+ F2 R2 D  R  D' R  F2 L' U  L   (13q*, 10f)
+ F2 R' F  R  F  D' L' F  U  F' L  D   (13q*, 12f)
+ F2 R' F  L  D  F' D' R  F  L' F  U   (13q*, 12f)
+ F' R  F  U' F' U' R' U  R  U  R' F  U   (13q*, 13f)
+ F' L  D  F' D' F' R' F  R  F  L' F  U   (13q*, 13f)
+ U  L  F' L  B  L  B' L  F  U  L' U' L   (13q*, 13f)
+ U  L  F' L  B  L  B' L' D' L' D  F  L'  (13q*, 13f)
+ U  L  F' L  B  D' L' D  F  L  B' L2  (13q*, 12f)
+ U  L  B' U  B  U  B' U' L' U' L  B  L'  (13q*, 13f)
+ D  F  L' U  L  F' D' L  B  L  B' L2  (13q*, 12f)
+
+R2 one turn
+     DB UR UB UL DF DR UF DL FR FL BR BL UFR FDR UBL ULF RBU DFL DLB DBR
+
+
+
+Frederik
+     UF UR UB UL DF DR DB DL FR FL BR BL UFR LFU UBL FDR URB DFL DLB DBR
+
+
+ F  U  R' D  R  U' R' D' R  F'  (10q*, 10f)
+ R  F' L' F  R2 F' L  F  R   (10q*, 9f)
+ R2 B  L' B' R2 B  L  B'  (10q*, 8f)
+ U' F' L  F  R  F' L' F  R' U   (10q*, 10f)
+ B  L  U' R  U  L' U' R' U  B'  (10q*, 10f)
+ D' L' B  L  F  L' B' L  F' D   (10q*, 10f)
+
+ x' R2 U L' U' R2 U L U'
+ R  F' L' F  R2 F' L  F  R
+
+B  L  U' R  U  L' U' R' U  B'
+x' U  L  F' R  F  L' F' R' F  U'
+
+Flip 4 edges
+     FU RU BU LU DF DR DB DL FR FL BR BL UFR URB UBL ULF DRF DFL DLB DBR
+
+
+ F  U  R  U' B  U2 B' R' U' F' U  L' U2 L   (16q*, 14f)
+ F  U2 F' U  L' U' B' R' U2 R  U' B  U  L   (16q*, 14f)
+
+HE + KA
+     UF UR BU UL FD DR DB DL FR FL BR BL UFR URB UBL ULF DRF DFL DLB DBR
+
+
+ F  U  F  R' U' F2 U  F  R  F  U  F' U' F' U'  (16q*, 15f)
+ F  U  F  U  F' U2 F2 U  D  R  U' R' D' F   (16q*, 14f)
+ F  U  F  U  F' U' L' U' F' U2 F  L  U' F' U'  (16q*, 15f)
+ F  U  L' F  U' R  L' B  U' L  B' U  R' L  F2  (16q*, 15f)
+ F  U  L' F  B' U  R' F  U' R  F' B  U' L  F2  (16q*, 15f)
+ F  U' F  U' R  B  L  F  U  F' U  L' B' R' F2  (16q*, 15f)
+ F  U' L  F' L  F  U  B  D  L' F  L' F' D' F' B'  (16q*, 16f)
+ F  B  U  B  L  B' L  U' F' D' B' L' B  L' D  B'  (16q*, 16f)
+ F  B  U  B  D  L' F  L' F' D' B' U' L  F' L  B'  (16q*, 16f)
+ F  B  U  D' L' B  D' L  B' U' D  L  F' D  L' B'  (16q*, 16f)
+ F  B  U' L  F' B  D' L  B' D  L' F  B' U  L' F'  (16q*, 16f)
+ F  L  U' F' B  L  D' B  L' D  F  B' L' U  F' B'  (16q*, 16f)
+ F  L  U' B  L' U' D  F  L' U  F' L  U  D' F' B'  (16q*, 16f)
+ F  L' U  B' U  B  L  F  R  U' B  U' B' R' F2  (16q*, 15f)
+ F  L' B  L' D  F  U  B  L  B' L  U' F' D' F' B'  (16q*, 16f)
+ F  D' L' U' L  U  D  F2 U2 F' U  F  U  F   (16q*, 14f)
+ F2 R  U' F' B  L  U' F  L' U  F  B' R' U  F   (16q*, 15f)
+ F2 R  B  U  B' U  R' F' L' B' U' B  U' L  F'  (16q*, 15f)
+ F2 R  B  L  U' F  U' F' L' B' R' U  F' U  F'  (16q*, 15f)
+ F2 R  L' U  B' R  U' B  R' L  U' F  R' U  F   (16q*, 15f)
+
+HE
+     UF DR BU DL FD UR DB UL BR BL FR FL DBR DRF DFL DLB URB UBL ULF UFR
+
+
+ F  D' L  F' D  R2 L2 U' B  L' U  B'  (14q*, 12f)
+dvs  (F D') L (F' D) (R2 L2) (U' B) L' (U  B')
+den normale er
+     (F' D) R' (F D') M2 (D F') R' (D' F)
+

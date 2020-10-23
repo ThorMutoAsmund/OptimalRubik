@@ -1,11 +1,10 @@
-// Optimal.cpp : Defines the entry point for the console application.
-//
-
-#include "stdafx.h"
+#include <stdio.h>  
+#include <tchar.h>
 
 
-/*  optimal cube solver  by  michael reid  reid@math.ucf.edu  */
-/*  version 2.1  june 3, 2004  */
+
+/*  optimal cube solver  by  michael reid  reid@math.ucf.edu */
+/*  version 2.1  june 3, 2004 */
 /*  symmetry mechanism added  */
 /*  malloc.h removed, long string fixed  */
 
@@ -177,146 +176,142 @@
 #define  SYLLABLE_UD3                       30
 #define  SYLLABLE_U2D2                      31
 
-
-
 #define  DIST(c, e)     (((e) & 0x1) ? (((int)distance[c][(e) >> 1]) >> 4)   \
                                      : (((int)distance[c][(e) >> 1]) & 0xF))
 
 
 typedef struct cube
 {
-	int             edges[24];
-	int             corners[24];
+	int edges[24];
+	int corners[24];
 }
 Cube;
 
 
 typedef struct coset_coord
 {
-	int             corner_state;
-	int             edge_state;
-	int             sym_state;
+	int corner_state;
+	int edge_state;
+	int sym_state;
 }
 Coset_coord;
 
 
 typedef struct full_cube
 {
-	Cube            cubies;
-	int             cornerperm;
-	int             ud_sliceedge;
-	int             rl_sliceedge;
-	int             fb_sliceedge;
-	Coset_coord     ud;
-	Coset_coord     rl;
-	Coset_coord     fb;
-	int             parity;
-	int             sym_subgrp;
+	Cube cubies;
+	int cornerperm;
+	int ud_sliceedge;
+	int rl_sliceedge;
+	int fb_sliceedge;
+	Coset_coord ud;
+	Coset_coord rl;
+	Coset_coord fb;
+	int parity;
+	int sym_subgrp;
 }
 Full_cube;
 
 
 typedef struct search_data
 {
-	int             depth;
-	int             found;
-	int             found_quot;
-	int            *multiplicities;
-	int            *stabilizers;
+	int depth;
+	int found;
+	int found_quot;
+	int* multiplicities;
+	int* stabilizers;
 }
 Search_data;
 
 
 typedef struct search_node
 {
-	int             remain_depth;
-	int             twist;
-	int             follow_type;
-	Coset_coord     ud;
-	Coset_coord     rl;
-	Coset_coord     fb;
+	int remain_depth;
+	int twist;
+	int follow_type;
+	Coset_coord ud;
+	Coset_coord rl;
+	Coset_coord fb;
 }
 Search_node;
 
 
 typedef struct metric_data
 {
-	int             metric;
-	char            metric_char;
-	int             twist_length[N_TWIST];
-	int             increment;
+	int metric;
+	char metric_char;
+	int twist_length[N_TWIST];
+	int increment;
 }
 Metric_data;
 
 
 typedef struct options
 {
-	int             use_symmetry;
-	int             search_limit;
-	int             one_solution_only;
+	int use_symmetry;
+	int search_limit;
+	int one_solution_only;
 }
 Options;
 
 
 typedef struct subgroup_list
 {
-	int             n_subgroups;
+	int n_subgroups;
 	int(*subgroups)[N_CUBESYM];
 }
 Subgroup_list;
 
 
 
-static unsigned char   *sym_x_invsym_to_sym[N_SYM];
+static unsigned char* sym_x_invsym_to_sym[N_SYM];
 
-static unsigned char   *invsym_on_twist_ud[N_SYM];
-static unsigned char   *invsym_on_twist_rl[N_SYM];
-static unsigned char   *invsym_on_twist_fb[N_SYM];
+static unsigned char* invsym_on_twist_ud[N_SYM];
+static unsigned char* invsym_on_twist_rl[N_SYM];
+static unsigned char* invsym_on_twist_fb[N_SYM];
 
-static unsigned short  *twist_on_corner[N_TWIST];
-static unsigned short  *sym_on_corner[N_SYM];
+static unsigned short* twist_on_corner[N_TWIST];
+static unsigned short* sym_on_corner[N_SYM];
 
-static unsigned short  *fulledge_to_edge;
-static unsigned char   *fulledge_to_sym;
+static unsigned short* fulledge_to_edge;
+static unsigned char* fulledge_to_sym;
 
-static unsigned short  *twist_on_edge[N_TWIST];
-static unsigned char   *twist_x_edge_to_sym[N_TWIST];
+static unsigned short* twist_on_edge[N_TWIST];
+static unsigned char* twist_x_edge_to_sym[N_TWIST];
 
-static unsigned short  *twist_on_cornerperm[N_TWIST];
-static unsigned short  *twist_on_sliceedge[N_TWIST];
+static unsigned short* twist_on_cornerperm[N_TWIST];
+static unsigned short* twist_on_sliceedge[N_TWIST];
 
-static unsigned short  *twist_on_follow[N_TWIST];
+static unsigned short* twist_on_follow[N_TWIST];
 
-static unsigned char   *distance[N_CORNER];
+static unsigned char* distance[N_CORNER];
 
-static char            *edge_cubie_str[] = { "UF", "UR", "UB", "UL",
-"DF", "DR", "DB", "DL",
-"FR", "FL", "BR", "BL",
-"FU", "RU", "BU", "LU",
-"FD", "RD", "BD", "LD",
-"RF", "LF", "RB", "LB" };
+static char* edge_cubie_str[] = {
+	"UF", "UR", "UB", "UL",
+	"DF", "DR", "DB", "DL",
+	"FR", "FL", "BR", "BL",
+	"FU", "RU", "BU", "LU",
+	"FD", "RD", "BD", "LD",
+	"RF", "LF", "RB", "LB"
+};
 
-static char            *corner_cubie_str[] = { "UFR", "URB", "UBL", "ULF",
-"DRF", "DFL", "DLB", "DBR",
-"FRU", "RBU", "BLU", "LFU",
-"RFD", "FLD", "LBD", "BRD",
-"RUF", "BUR", "LUB", "FUL",
-"FDR", "LDF", "BDL", "RDB" };
+static char* corner_cubie_str[] = {
+	"UFR", "URB", "UBL", "ULF",
+	"DRF", "DFL", "DLB", "DBR",
+	"FRU", "RBU", "BLU", "LFU",
+	"RFD", "FLD", "LBD", "BRD",
+	"RUF", "BUR", "LUB", "FUL",
+	"FDR", "LDF", "BDL", "RDB"
+};
 
-static Metric_data     *p_current_metric;
-static Options         *p_current_options;
+static Metric_data* p_current_metric;
+static Options* p_current_options;
 
-static unsigned int     n_nodes;
-static unsigned int     n_tests;
-static int              sol_found;
+static unsigned int n_nodes;
+static unsigned int n_tests;
+static int sol_found;
 
-// TMA removed this static sigjmp_buf       jump_env;
-
-
-/* ========================================================================= */
-void  exit_w_error_message(char  *msg)
-/* ------------------------------------------------------------------------- */
-
+void  exit_w_error_message(char* msg)
 {
 	printf("\n%s\n", msg);
 	exit(EXIT_FAILURE);
@@ -325,23 +320,18 @@ void  exit_w_error_message(char  *msg)
 }
 
 
-/* ========================================================================= */
-void  user_interrupt(int  unused_arg)
-/* ------------------------------------------------------------------------- */
 
+void  user_interrupt(int  unused_arg)
 {
 	printf("\n-- user interrupt --\n");
 	fflush(stdout);
-	// TMA removed this siglongjmp(jump_env, 1);
 
 	return;
 }
 
 
-/* ========================================================================= */
-void  perm_n_unpack(int  nn, int  indx, int  array_out[])
-/* ------------------------------------------------------------------------- */
 
+void  perm_n_unpack(int  nn, int  indx, int  array_out[])
 {
 	int                     ii, jj;
 
@@ -360,10 +350,8 @@ void  perm_n_unpack(int  nn, int  indx, int  array_out[])
 }
 
 
-/* ========================================================================= */
-int  perm_n_pack(int  nn, int  array_in[])
-/* ------------------------------------------------------------------------- */
 
+int  perm_n_pack(int  nn, int  array_in[])
 {
 	int                     indx, ii, jj;
 
@@ -383,10 +371,8 @@ int  perm_n_pack(int  nn, int  array_in[])
 }
 
 
-/* ========================================================================= */
-int  perm_n_check(int  nn, int  array_in[])
-/* ------------------------------------------------------------------------- */
 
+int  perm_n_check(int  nn, int  array_in[])
 {
 	int                     count[MAX_CHECK_PERM_N], ii;
 
@@ -410,10 +396,8 @@ int  perm_n_check(int  nn, int  array_in[])
 }
 
 
-/* ========================================================================= */
-int  perm_n_parity(int  nn, int  array_in[])
-/* ------------------------------------------------------------------------- */
 
+int  perm_n_parity(int  nn, int  array_in[])
 {
 	int                     temp_array[MAX_CHECK_PERM_N];
 	int                     ii, jj, n_cycles;
@@ -440,10 +424,8 @@ int  perm_n_parity(int  nn, int  array_in[])
 }
 
 
-/* ========================================================================= */
-void  perm_n_init(int  nn, int  array_out[])
-/* ------------------------------------------------------------------------- */
 
+void  perm_n_init(int  nn, int  array_out[])
 {
 	int                     ii;
 
@@ -455,11 +437,9 @@ void  perm_n_init(int  nn, int  array_out[])
 }
 
 
-/* ========================================================================= */
+
 void  perm_n_compose(int  nn, int  perm0_in[], int  perm1_in[],
 	int  perm_out[])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int                     ii;
 
@@ -471,11 +451,9 @@ void  perm_n_compose(int  nn, int  perm0_in[], int  perm1_in[],
 }
 
 
-/* ========================================================================= */
+
 void  perm_n_conjugate(int  nn, int  arr_in[], int  conjugator[],
 	int  array_out[])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int                     ii;
 
@@ -487,10 +465,8 @@ void  perm_n_conjugate(int  nn, int  arr_in[], int  conjugator[],
 }
 
 
-/* ========================================================================= */
-void  two_cycle(int  array[], int  ind0, int  ind1)
-/* ------------------------------------------------------------------------- */
 
+void  two_cycle(int  array[], int  ind0, int  ind1)
 {
 	int                     temp;
 
@@ -503,10 +479,8 @@ void  two_cycle(int  array[], int  ind0, int  ind1)
 }
 
 
-/* ========================================================================= */
-void  three_cycle(int  array[], int  ind0, int  ind1, int  ind2)
-/* ------------------------------------------------------------------------- */
 
+void  three_cycle(int  array[], int  ind0, int  ind1, int  ind2)
 {
 	int                     temp;
 
@@ -520,10 +494,8 @@ void  three_cycle(int  array[], int  ind0, int  ind1, int  ind2)
 }
 
 
-/* ========================================================================= */
-void  four_cycle(int  array[], int  ind0, int  ind1, int  ind2, int  ind3)
-/* ------------------------------------------------------------------------- */
 
+void  four_cycle(int  array[], int  ind0, int  ind1, int  ind2, int  ind3)
 {
 	int                     temp;
 
@@ -538,10 +510,8 @@ void  four_cycle(int  array[], int  ind0, int  ind1, int  ind2, int  ind3)
 }
 
 
-/* ========================================================================= */
-void  print_cube(Cube  *p_cube)
-/* ------------------------------------------------------------------------- */
 
+void  print_cube(Cube* p_cube)
 {
 	printf("%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n",
 		edge_cubie_str[p_cube->edges[0]], edge_cubie_str[p_cube->edges[1]],
@@ -559,10 +529,8 @@ void  print_cube(Cube  *p_cube)
 }
 
 
-/* ========================================================================= */
-void  cube_init(Cube  *p_cube)
-/* ------------------------------------------------------------------------- */
 
+void  cube_init(Cube* p_cube)
 {
 	perm_n_init(24, p_cube->edges);
 	perm_n_init(24, p_cube->corners);
@@ -571,10 +539,8 @@ void  cube_init(Cube  *p_cube)
 }
 
 
-/* ========================================================================= */
-int  cube_compare(Cube  *cube0, Cube  *cube1)
-/* ------------------------------------------------------------------------- */
 
+int  cube_compare(Cube* cube0, Cube* cube1)
 {
 	int           ii;
 
@@ -598,10 +564,8 @@ int  cube_compare(Cube  *cube0, Cube  *cube1)
 }
 
 
-/* ========================================================================= */
-void  cube_compose(Cube  *in_cube0, Cube  *in_cube1, Cube  *out_cube)
-/* ------------------------------------------------------------------------- */
 
+void  cube_compose(Cube* in_cube0, Cube* in_cube1, Cube* out_cube)
 {
 	perm_n_compose(24, in_cube0->edges, in_cube1->edges, out_cube->edges);
 	perm_n_compose(24, in_cube0->corners, in_cube1->corners, out_cube->corners);
@@ -610,11 +574,9 @@ void  cube_compose(Cube  *in_cube0, Cube  *in_cube1, Cube  *out_cube)
 }
 
 
-/* ========================================================================= */
-void  cube_conjugate(Cube  *p_cube_in, Cube  *p_conjugator,
-	Cube  *p_cube_out)
-	/* ------------------------------------------------------------------------- */
 
+void  cube_conjugate(Cube* p_cube_in, Cube* p_conjugator,
+	Cube* p_cube_out)
 {
 	perm_n_conjugate(24, p_cube_in->edges, p_conjugator->edges, p_cube_out->edges);
 	perm_n_conjugate(24, p_cube_in->corners, p_conjugator->corners,
@@ -624,10 +586,8 @@ void  cube_conjugate(Cube  *p_cube_in, Cube  *p_conjugator,
 }
 
 
-/* ========================================================================= */
-int  cube_is_solved(Cube  *p_cube)
-/* ------------------------------------------------------------------------- */
 
+int  cube_is_solved(Cube* p_cube)
 {
 	Cube                    temp_cube;
 
@@ -638,10 +598,8 @@ int  cube_is_solved(Cube  *p_cube)
 }
 
 
-/* ========================================================================= */
-int  metric_q_length(int  twist)
-/* ------------------------------------------------------------------------- */
 
+int  metric_q_length(int  twist)
 {
 	if ((twist == TWIST_F) || (twist == TWIST_F3) ||
 		(twist == TWIST_R) || (twist == TWIST_R3) ||
@@ -660,10 +618,8 @@ int  metric_q_length(int  twist)
 }
 
 
-/* ========================================================================= */
-int  metric_f_length(int  twist)
-/* ------------------------------------------------------------------------- */
 
+int  metric_f_length(int  twist)
 {
 	if ((twist == TWIST_F) || (twist == TWIST_F2) || (twist == TWIST_F3) ||
 		(twist == TWIST_R) || (twist == TWIST_R2) || (twist == TWIST_R3) ||
@@ -679,10 +635,8 @@ int  metric_f_length(int  twist)
 }
 
 
-/* ========================================================================= */
-void  calc_metric_q_length(int  lengths[N_TWIST])
-/* ------------------------------------------------------------------------- */
 
+void  calc_metric_q_length(int  lengths[N_TWIST])
 {
 	int                     twist;
 
@@ -694,10 +648,8 @@ void  calc_metric_q_length(int  lengths[N_TWIST])
 }
 
 
-/* ========================================================================= */
-void  calc_metric_f_length(int  lengths[N_TWIST])
-/* ------------------------------------------------------------------------- */
 
+void  calc_metric_f_length(int  lengths[N_TWIST])
 {
 	int                     twist;
 
@@ -709,10 +661,8 @@ void  calc_metric_f_length(int  lengths[N_TWIST])
 }
 
 
-/* ========================================================================= */
-void  init_metric(Metric_data  *p_metric_data, int  use_metric)
-/* ------------------------------------------------------------------------- */
 
+void  init_metric(Metric_data* p_metric_data, int  use_metric)
 {
 	if ((use_metric != QUARTER_TURN_METRIC) && (use_metric != FACE_TURN_METRIC))
 		exit_w_error_message("init_metric : unknown metric");
@@ -740,10 +690,8 @@ void  init_metric(Metric_data  *p_metric_data, int  use_metric)
 }
 
 
-/* ========================================================================= */
-void  init_options(Metric_data  *p_metric_data, Options  *p_user_options)
-/* ------------------------------------------------------------------------- */
 
+void  init_options(Metric_data* p_metric_data, Options* p_user_options)
 {
 	init_metric(p_metric_data, USE_METRIC);
 
@@ -773,10 +721,8 @@ void  init_options(Metric_data  *p_metric_data, Options  *p_user_options)
 }
 
 
-/* ========================================================================= */
-void  calc_group_table(int  group_table[N_CUBESYM][N_CUBESYM])
-/* ------------------------------------------------------------------------- */
 
+void  calc_group_table(int  group_table[N_CUBESYM][N_CUBESYM])
 {
 	int                     sym_array[N_CUBESYM][6];
 	int                     sym_pack[N_CUBESYM];
@@ -839,10 +785,8 @@ void  calc_group_table(int  group_table[N_CUBESYM][N_CUBESYM])
 }
 
 
-/* ========================================================================= */
-void  init_sym_x_invsym_to_sym(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_sym_x_invsym_to_sym(void)
 {
 	unsigned char(*mem_ptr)[N_SYM];
 	int                     group_table[N_CUBESYM][N_CUBESYM];
@@ -884,10 +828,8 @@ void  init_sym_x_invsym_to_sym(void)
 }
 
 
-/* ========================================================================= */
-void  calc_sym_on_twist(int  sym_on_twist[N_CUBESYM][N_TWIST])
-/* ------------------------------------------------------------------------- */
 
+void  calc_sym_on_twist(int  sym_on_twist[N_CUBESYM][N_TWIST])
 {
 	int                     sym;
 
@@ -947,10 +889,8 @@ void  calc_sym_on_twist(int  sym_on_twist[N_CUBESYM][N_TWIST])
 }
 
 
-/* ========================================================================= */
-void  init_invsym_on_twist(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_invsym_on_twist(void)
 {
 	unsigned char(*mem_ptr)[N_SYM][N_TWIST];
 	int                     sym_on_twist[N_CUBESYM][N_TWIST];
@@ -1002,14 +942,12 @@ void  init_invsym_on_twist(void)
 }
 
 
-/* ========================================================================= */
+
 void  generate_subgroup(int  group_table[N_CUBESYM][N_CUBESYM],
 	int   gen_set[N_CUBESYM])
-	/* ------------------------------------------------------------------------- */
 
-	/*  gen_set[]  is both input and output  */
 
-{
+	/*  gen_set[]  is both input and output  */ {
 	int                 found, ii, jj;
 
 
@@ -1034,13 +972,11 @@ void  generate_subgroup(int  group_table[N_CUBESYM][N_CUBESYM],
 }
 
 
-/* ========================================================================= */
+
 void  calc_subgroups_recursive(int  group_table[N_CUBESYM][N_CUBESYM],
 	int  contain_list[N_CUBESYM],
 	int  avoid_list[N_CUBESYM],
-	Subgroup_list  *p_output)
-	/* ------------------------------------------------------------------------- */
-
+	Subgroup_list* p_output)
 {
 	int                 local_contain_list[N_CUBESYM], ii, jj;
 
@@ -1080,10 +1016,8 @@ void  calc_subgroups_recursive(int  group_table[N_CUBESYM][N_CUBESYM],
 }
 
 
-/* ========================================================================= */
-void  calc_subgroup_list(int  subgroup_list[N_SYMSUBGRP][N_CUBESYM])
-/* ------------------------------------------------------------------------- */
 
+void  calc_subgroup_list(int  subgroup_list[N_SYMSUBGRP][N_CUBESYM])
 {
 	Subgroup_list   output_list;
 	int             group_table[N_CUBESYM][N_CUBESYM];
@@ -1114,10 +1048,8 @@ void  calc_subgroup_list(int  subgroup_list[N_SYMSUBGRP][N_CUBESYM])
 }
 
 
-/* ========================================================================= */
-int  is_single_twist(int  syllable)
-/* ------------------------------------------------------------------------- */
 
+int  is_single_twist(int syllable)
 {
 	if ((syllable == SYLLABLE_F) || (syllable == SYLLABLE_F2) ||
 		(syllable == SYLLABLE_F3) ||
@@ -1137,10 +1069,8 @@ int  is_single_twist(int  syllable)
 }
 
 
-/* ========================================================================= */
-int  syllable_to_twist(int  syllable)
-/* ------------------------------------------------------------------------- */
 
+int  syllable_to_twist(int  syllable)
 {
 	if (syllable == SYLLABLE_F)
 		return TWIST_F;
@@ -1185,10 +1115,8 @@ int  syllable_to_twist(int  syllable)
 }
 
 
-/* ========================================================================= */
-void  syllable_to_two_twists(int  syllable, int  twists_out[2])
-/* ------------------------------------------------------------------------- */
 
+void  syllable_to_two_twists(int  syllable, int  twists_out[2])
 {
 	if (syllable == SYLLABLE_FB)
 	{
@@ -1257,10 +1185,8 @@ void  syllable_to_two_twists(int  syllable, int  twists_out[2])
 }
 
 
-/* ========================================================================= */
-int  twists_in_wrong_order(int  twists[2])
-/* ------------------------------------------------------------------------- */
 
+int  twists_in_wrong_order(int  twists[2])
 {
 	if (((twists[0] == TWIST_B) || (twists[0] == TWIST_B2) ||
 		(twists[0] == TWIST_B3)) &&
@@ -1284,10 +1210,8 @@ int  twists_in_wrong_order(int  twists[2])
 }
 
 
-/* ========================================================================= */
-void  clean_up_sequence(int  twist_sequence[], int  n_twists)
-/* ------------------------------------------------------------------------- */
 
+void  clean_up_sequence(int  twist_sequence[], int  n_twists)
 {
 	int             ii;
 
@@ -1300,11 +1224,9 @@ void  clean_up_sequence(int  twist_sequence[], int  n_twists)
 }
 
 
-/* ========================================================================= */
+
 int  which_subgroup(int  subgroup[N_CUBESYM],
 	int  subgroup_list[N_SYMSUBGRP][N_CUBESYM])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int             subgrp, sym;
 
@@ -1323,12 +1245,10 @@ int  which_subgroup(int  subgroup[N_CUBESYM],
 }
 
 
-/* ========================================================================= */
+
 void  calc_syllable_on_sym(int  subgroup_list[N_SYMSUBGRP][N_CUBESYM],
 	int  sym_on_twist[N_CUBESYM][N_TWIST],
 	int  syllable_on_sym[N_SYLLABLE][N_SYMSUBGRP])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int             subgroup[N_CUBESYM], temp_subgroup[N_CUBESYM];
 	int             twist_arr[2], temp_arr[2];
@@ -1382,10 +1302,8 @@ void  calc_syllable_on_sym(int  subgroup_list[N_SYMSUBGRP][N_CUBESYM],
 }
 
 
-/* ========================================================================= */
-int  twist_on_syllable(int  twist, int  syllable)
-/* ------------------------------------------------------------------------- */
 
+int  twist_on_syllable(int  twist, int  syllable)
 {
 	if (syllable == SYLLABLE_INVALID)
 		return SYLLABLE_INVALID;
@@ -1643,12 +1561,10 @@ int  twist_on_syllable(int  twist, int  syllable)
 }
 
 
-/* ========================================================================= */
+
 int  not_minimal_one_twist(int  subgroup[N_CUBESYM],
 	int  sym_on_twist[N_CUBESYM][N_TWIST],
 	int  twist)
-	/* ------------------------------------------------------------------------- */
-
 {
 	int                     sym;
 
@@ -1661,12 +1577,10 @@ int  not_minimal_one_twist(int  subgroup[N_CUBESYM],
 }
 
 
-/* ========================================================================= */
+
 int  not_minimal_two_twists(int  subgroup[N_CUBESYM],
 	int  sym_on_twist[N_CUBESYM][N_TWIST],
 	int  twist0, int  twist1)
-	/* ------------------------------------------------------------------------- */
-
 {
 	int                     twist_arr[2], sym;
 
@@ -1686,11 +1600,9 @@ int  not_minimal_two_twists(int  subgroup[N_CUBESYM],
 }
 
 
-/* ========================================================================= */
+
 void  calc_twist_on_sylsubgrp(int
 	tw_on_sylsubgrp[N_TWIST][N_SYLLABLE * N_SYMSUBGRP])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int             subgroup_list[N_SYMSUBGRP][N_CUBESYM];
 	int             sym_on_twist[N_CUBESYM][N_TWIST];
@@ -1754,10 +1666,8 @@ void  calc_twist_on_sylsubgrp(int
 }
 
 
-/* ========================================================================= */
-void  init_twist_on_follow(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_twist_on_follow(void)
 {
 	unsigned short(*mem_ptr)[N_FOLLOW];
 	int                     tw_on_sylsubgrp[N_TWIST][N_SYLLABLE * N_SYMSUBGRP];
@@ -1834,14 +1744,12 @@ void  init_twist_on_follow(void)
 }
 
 
-/* ========================================================================= */
+
 void  corner_unpack(int  corner, int  array_out[8])
-/* ------------------------------------------------------------------------- */
+
 
 /*  input:  corner
-output:  array_out[]  */
-
-{
+output:  array_out[]  */ {
 	int                     ii;
 
 
@@ -1858,13 +1766,11 @@ output:  array_out[]  */
 }
 
 
-/* ========================================================================= */
+
 int  corner_pack(int  array_in[8])
-/* ------------------------------------------------------------------------- */
 
-/*  input:  array_in[]  */
 
-{
+/*  input:  array_in[]  */ {
 	int                     corner, ii;
 
 
@@ -1876,11 +1782,9 @@ int  corner_pack(int  array_in[8])
 }
 
 
-/* ========================================================================= */
+
 void  corner_adjust(int  array[8], int  ind0, int  ind1, int  ind2,
 	int  ind3)
-	/* ------------------------------------------------------------------------- */
-
 {
 	array[ind0] = (array[ind0] + 1) % 3;
 	array[ind1] = (array[ind1] + 2) % 3;
@@ -1891,10 +1795,8 @@ void  corner_adjust(int  array[8], int  ind0, int  ind1, int  ind2,
 }
 
 
-/* ========================================================================= */
-int  twist_f_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  twist_f_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -1907,10 +1809,8 @@ int  twist_f_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-int  twist_r_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  twist_r_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -1923,10 +1823,8 @@ int  twist_r_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-int  twist_u_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  twist_u_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -1938,10 +1836,8 @@ int  twist_u_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-int  twist_b_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  twist_b_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -1954,10 +1850,8 @@ int  twist_b_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-int  twist_l_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  twist_l_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -1970,10 +1864,8 @@ int  twist_l_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-int  twist_d_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  twist_d_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -1985,10 +1877,8 @@ int  twist_d_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-void  init_twist_on_corner(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_twist_on_corner(void)
 {
 	int                     twist, corner;
 
@@ -1996,7 +1886,7 @@ void  init_twist_on_corner(void)
 	/*  allocate and initialize global array   twist_on_corner    */
 
 	twist_on_corner[0] =
-		(unsigned short *)malloc(sizeof(unsigned short[N_TWIST][N_CORNER]));
+		(unsigned short*)malloc(sizeof(unsigned short[N_TWIST][N_CORNER]));
 	if (twist_on_corner[0] == NULL)
 		exit_w_error_message("init_twist_on_corner : couldn't get memory");
 
@@ -2053,10 +1943,8 @@ void  init_twist_on_corner(void)
 }
 
 
-/* ========================================================================= */
-int  sym_cu_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  sym_cu_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -2069,10 +1957,8 @@ int  sym_cu_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-int  sym_cf2_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  sym_cf2_on_corner(int  corner)
 {
 	int                     temp_arr[8];
 
@@ -2087,10 +1973,8 @@ int  sym_cf2_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-int  sym_rud_on_corner(int  corner)
-/* ------------------------------------------------------------------------- */
 
+int  sym_rud_on_corner(int  corner)
 {
 	int                     temp_arr[8], ii;
 
@@ -2108,10 +1992,8 @@ int  sym_rud_on_corner(int  corner)
 }
 
 
-/* ========================================================================= */
-void  init_sym_on_corner(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_sym_on_corner(void)
 {
 	int                     corner, sym;
 
@@ -2119,7 +2001,7 @@ void  init_sym_on_corner(void)
 	/*  allocate and initialize global array   sym_on_corner    */
 
 	sym_on_corner[0] =
-		(unsigned short *)malloc(sizeof(unsigned short[N_SYM][N_CORNER]));
+		(unsigned short*)malloc(sizeof(unsigned short[N_SYM][N_CORNER]));
 	if (sym_on_corner[0] == NULL)
 		exit_w_error_message("init_sym_on_corner : couldn't get memory");
 
@@ -2157,10 +2039,8 @@ void  init_sym_on_corner(void)
 }
 
 
-/* ========================================================================= */
-void  calc_edgeloc_conv(int  conv_tab[N_ELOC], int  unconv_tab[N_ELOC_CONV])
-/* ------------------------------------------------------------------------- */
 
+void  calc_edgeloc_conv(int  conv_tab[N_ELOC], int  unconv_tab[N_ELOC_CONV])
 {
 	int                     ii, loc0, loc1, loc2, loc3, count;
 
@@ -2192,10 +2072,8 @@ void  calc_edgeloc_conv(int  conv_tab[N_ELOC], int  unconv_tab[N_ELOC_CONV])
 }
 
 
-/* ========================================================================= */
-int  edgeloc_conv_or_unconv(int  eloc_conv_or_unconv, int  convert_flag)
-/* ------------------------------------------------------------------------- */
 
+int  edgeloc_conv_or_unconv(int  eloc_conv_or_unconv, int  convert_flag)
 {
 	static int              eloc_conv[N_ELOC];
 	static int              eloc_unconv[N_ELOC_CONV];
@@ -2236,32 +2114,26 @@ int  edgeloc_conv_or_unconv(int  eloc_conv_or_unconv, int  convert_flag)
 }
 
 
-/* ========================================================================= */
-int  edgeloc_conv(int  eloc_unconv)
-/* ------------------------------------------------------------------------- */
 
+int  edgeloc_conv(int  eloc_unconv)
 {
 	return edgeloc_conv_or_unconv(eloc_unconv, 1);
 }
 
 
-/* ========================================================================= */
-int  edgeloc_unconv(int  eloc_conv)
-/* ------------------------------------------------------------------------- */
 
+int  edgeloc_unconv(int  eloc_conv)
 {
 	return edgeloc_conv_or_unconv(eloc_conv, 0);
 }
 
 
-/* ========================================================================= */
+
 void  eloc_unpack(int  eloc, int  array_out[12])
-/* ------------------------------------------------------------------------- */
+
 
 /*  input:  eloc
-output:  array_out[]  */
-
-{
+output:  array_out[]  */ {
 	int                     conv, ii;
 
 
@@ -2277,10 +2149,8 @@ output:  array_out[]  */
 }
 
 
-/* ========================================================================= */
-int  eloc_pack(int  array_in[12])
-/* ------------------------------------------------------------------------- */
 
+int  eloc_pack(int  array_in[12])
 {
 	int                     ii, conv;
 
@@ -2293,10 +2163,8 @@ int  eloc_pack(int  array_in[12])
 }
 
 
-/* ========================================================================= */
-int  twist_f_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  twist_f_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2308,10 +2176,8 @@ int  twist_f_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-int  twist_r_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  twist_r_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2323,10 +2189,8 @@ int  twist_r_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-int  twist_u_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  twist_u_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2338,10 +2202,8 @@ int  twist_u_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-int  twist_b_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  twist_b_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2353,10 +2215,8 @@ int  twist_b_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-int  twist_l_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  twist_l_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2368,10 +2228,8 @@ int  twist_l_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-int  twist_d_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  twist_d_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2383,10 +2241,8 @@ int  twist_d_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-void  calc_twist_on_eloc(int  table[N_TWIST][N_ELOC])
-/* ------------------------------------------------------------------------- */
 
+void  calc_twist_on_eloc(int  table[N_TWIST][N_ELOC])
 {
 	int                     edgeloc;
 
@@ -2419,10 +2275,8 @@ void  calc_twist_on_eloc(int  table[N_TWIST][N_ELOC])
 }
 
 
-/* ========================================================================= */
-int  sym_cu_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  sym_cu_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2436,10 +2290,8 @@ int  sym_cu_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-int  sym_cf2_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  sym_cf2_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2456,10 +2308,8 @@ int  sym_cf2_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-int  sym_rud_on_eloc(int  eloc)
-/* ------------------------------------------------------------------------- */
 
+int  sym_rud_on_eloc(int  eloc)
 {
 	int                     temp_arr[12];
 
@@ -2474,10 +2324,8 @@ int  sym_rud_on_eloc(int  eloc)
 }
 
 
-/* ========================================================================= */
-void  calc_sym_on_eloc(int  table[N_SYM][N_ELOC])
-/* ------------------------------------------------------------------------- */
 
+void  calc_sym_on_eloc(int  table[N_SYM][N_ELOC])
 {
 	int                     edgeloc, sym;
 
@@ -2506,10 +2354,8 @@ void  calc_sym_on_eloc(int  table[N_SYM][N_ELOC])
 }
 
 
-/* ========================================================================= */
-void  eflip_unpack(int  eflip, int  array_out[12])
-/* ------------------------------------------------------------------------- */
 
+void  eflip_unpack(int  eflip, int  array_out[12])
 {
 	int                     ii;
 
@@ -2528,10 +2374,8 @@ void  eflip_unpack(int  eflip, int  array_out[12])
 }
 
 
-/* ========================================================================= */
-int  eflip_pack(int  array_in[12])
-/* ------------------------------------------------------------------------- */
 
+int  eflip_pack(int  array_in[12])
 {
 	int                     eflip, ii;
 
@@ -2544,11 +2388,9 @@ int  eflip_pack(int  array_in[12])
 }
 
 
-/* ========================================================================= */
+
 void  eflip_adjust(int  array[12], int  ind0, int  ind1, int  ind2,
 	int  ind3)
-	/* ------------------------------------------------------------------------- */
-
 {
 	array[ind0] = 1 - array[ind0];
 	array[ind1] = 1 - array[ind1];
@@ -2559,10 +2401,8 @@ void  eflip_adjust(int  array[12], int  ind0, int  ind1, int  ind2,
 }
 
 
-/* ========================================================================= */
-int  twist_f_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  twist_f_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2575,10 +2415,8 @@ int  twist_f_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-int  twist_r_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  twist_r_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2590,10 +2428,8 @@ int  twist_r_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-int  twist_u_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  twist_u_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2605,10 +2441,8 @@ int  twist_u_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-int  twist_b_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  twist_b_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2621,10 +2455,8 @@ int  twist_b_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-int  twist_l_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  twist_l_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2636,10 +2468,8 @@ int  twist_l_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-int  twist_d_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  twist_d_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2651,10 +2481,8 @@ int  twist_d_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-void  calc_twist_on_eflip(int  table[N_TWIST][N_EFLIP])
-/* ------------------------------------------------------------------------- */
 
+void  calc_twist_on_eflip(int  table[N_TWIST][N_EFLIP])
 {
 	int                     edgeflip;
 
@@ -2687,10 +2515,8 @@ void  calc_twist_on_eflip(int  table[N_TWIST][N_EFLIP])
 }
 
 
-/* ========================================================================= */
-int  sym_cu2_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  sym_cu2_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2707,10 +2533,8 @@ int  sym_cu2_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-int  sym_cf2_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  sym_cf2_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2727,10 +2551,8 @@ int  sym_cf2_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-int  sym_rud_on_eflip(int  eflip)
-/* ------------------------------------------------------------------------- */
 
+int  sym_rud_on_eflip(int  eflip)
 {
 	int                     temp_arr[12];
 
@@ -2745,10 +2567,8 @@ int  sym_rud_on_eflip(int  eflip)
 }
 
 
-/* ========================================================================= */
-void  calc_sym_on_eflip(int  table[N_SYM / 2][N_EFLIP])
-/* ------------------------------------------------------------------------- */
 
+void  calc_sym_on_eflip(int  table[N_SYM / 2][N_EFLIP])
 {
 	int                     edgeflip, sym;
 
@@ -2773,10 +2593,8 @@ void  calc_sym_on_eflip(int  table[N_SYM / 2][N_EFLIP])
 }
 
 
-/* ========================================================================= */
-int  sym_cu_on_fulledge(int  fulledge)
-/* ------------------------------------------------------------------------- */
 
+int  sym_cu_on_fulledge(int  fulledge)
 {
 	int                     edgeloc_arr[12], edgeflip_arr[12], temp_arr[12], ii;
 
@@ -2796,22 +2614,20 @@ int  sym_cu_on_fulledge(int  fulledge)
 }
 
 
-/* ========================================================================= */
+
 void  init_fulledge_to_edgequot(int  sym_on_eloc[N_SYM][N_ELOC],
 	int  sym_on_eflip[N_SYM / 2][N_EFLIP],
 	int  edge_to_fulledge[N_EDGEQUOT],
 	int  stabilizers[N_EDGEQUOT],
 	int  multiplicities[N_EDGEQUOT])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int                     count, sym_count, fulledge, cu_fulledge, sym, min_sym;
 	int                     min_full, new_full, stab;
 
 
 	fulledge_to_edge =
-		(unsigned short *)malloc(sizeof(unsigned short[N_FULLEDGE]));
-	fulledge_to_sym = (unsigned char *)malloc(sizeof(unsigned char[N_FULLEDGE]));
+		(unsigned short*)malloc(sizeof(unsigned short[N_FULLEDGE]));
+	fulledge_to_sym = (unsigned char*)malloc(sizeof(unsigned char[N_FULLEDGE]));
 
 	if ((fulledge_to_edge == NULL) || (fulledge_to_sym == NULL))
 		exit_w_error_message("init_fulledge_to_edgequot : couldn't get memory");
@@ -2882,12 +2698,10 @@ void  init_fulledge_to_edgequot(int  sym_on_eloc[N_SYM][N_ELOC],
 }
 
 
-/* ========================================================================= */
+
 void  init_twist_on_edge(int  twist_on_eloc[N_TWIST][N_ELOC],
 	int  twist_on_eflip[N_TWIST][N_EFLIP],
 	int  edge_to_fulledge[N_EDGEQUOT])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int                     twist, edge, fulledge, new_edge;
 
@@ -2896,9 +2710,9 @@ void  init_twist_on_edge(int  twist_on_eloc[N_TWIST][N_ELOC],
 	/*  twist_on_edge   and    twist_x_edge_to_sym    */
 
 	twist_on_edge[0] =
-		(unsigned short *)malloc(sizeof(unsigned short[N_TWIST][N_EDGEQUOT]));
+		(unsigned short*)malloc(sizeof(unsigned short[N_TWIST][N_EDGEQUOT]));
 	twist_x_edge_to_sym[0] =
-		(unsigned char *)malloc(sizeof(unsigned char[N_TWIST][N_EDGEQUOT]));
+		(unsigned char*)malloc(sizeof(unsigned char[N_TWIST][N_EDGEQUOT]));
 
 	if ((twist_on_edge[0] == NULL) || (twist_x_edge_to_sym[0] == NULL))
 		exit_w_error_message("init_twist_on_edge : couldn't get memory");
@@ -2924,11 +2738,9 @@ void  init_twist_on_edge(int  twist_on_eloc[N_TWIST][N_ELOC],
 }
 
 
-/* ========================================================================= */
+
 void  init_edge_quotient(int  stabilizers[N_EDGEQUOT],
 	int  multiplicities[N_EDGEQUOT])
-	/* ------------------------------------------------------------------------- */
-
 {
 	int                     twist_on_eloc[N_TWIST][N_ELOC];
 	int                     twist_on_eflip[N_TWIST][N_EFLIP];
@@ -2949,10 +2761,8 @@ void  init_edge_quotient(int  stabilizers[N_EDGEQUOT],
 }
 
 
-/* ========================================================================= */
-void  cornerperm_unpack(int  cperm, int  array_out[8])
-/* ------------------------------------------------------------------------- */
 
+void  cornerperm_unpack(int  cperm, int  array_out[8])
 {
 	perm_n_unpack(8, cperm, array_out);
 
@@ -2960,19 +2770,15 @@ void  cornerperm_unpack(int  cperm, int  array_out[8])
 }
 
 
-/* ========================================================================= */
-int  cornerperm_pack(int  array_in[8])
-/* ------------------------------------------------------------------------- */
 
+int  cornerperm_pack(int  array_in[8])
 {
 	return perm_n_pack(8, array_in);
 }
 
 
-/* ========================================================================= */
-int  twist_f_on_cperm(int  cperm)
-/* ------------------------------------------------------------------------- */
 
+int  twist_f_on_cperm(int  cperm)
 {
 	int                     temp_arr[8];
 
@@ -2984,10 +2790,8 @@ int  twist_f_on_cperm(int  cperm)
 }
 
 
-/* ========================================================================= */
-int  twist_r_on_cperm(int  cperm)
-/* ------------------------------------------------------------------------- */
 
+int  twist_r_on_cperm(int  cperm)
 {
 	int                     temp_arr[8];
 
@@ -2999,10 +2803,8 @@ int  twist_r_on_cperm(int  cperm)
 }
 
 
-/* ========================================================================= */
-int  twist_u_on_cperm(int  cperm)
-/* ------------------------------------------------------------------------- */
 
+int  twist_u_on_cperm(int  cperm)
 {
 	int                     temp_arr[8];
 
@@ -3014,10 +2816,8 @@ int  twist_u_on_cperm(int  cperm)
 }
 
 
-/* ========================================================================= */
-int  twist_b_on_cperm(int  cperm)
-/* ------------------------------------------------------------------------- */
 
+int  twist_b_on_cperm(int  cperm)
 {
 	int                     temp_arr[8];
 
@@ -3029,10 +2829,8 @@ int  twist_b_on_cperm(int  cperm)
 }
 
 
-/* ========================================================================= */
-int  twist_l_on_cperm(int  cperm)
-/* ------------------------------------------------------------------------- */
 
+int  twist_l_on_cperm(int  cperm)
 {
 	int                     temp_arr[8];
 
@@ -3044,10 +2842,8 @@ int  twist_l_on_cperm(int  cperm)
 }
 
 
-/* ========================================================================= */
-int  twist_d_on_cperm(int  cperm)
-/* ------------------------------------------------------------------------- */
 
+int  twist_d_on_cperm(int  cperm)
 {
 	int                     temp_arr[8];
 
@@ -3059,10 +2855,8 @@ int  twist_d_on_cperm(int  cperm)
 }
 
 
-/* ========================================================================= */
-void  init_twist_on_cornerperm(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_twist_on_cornerperm(void)
 {
 	int                     cp, twist;
 
@@ -3070,7 +2864,7 @@ void  init_twist_on_cornerperm(void)
 	/*  allocate and initialize global array    twist_on_cornerperm    */
 
 	twist_on_cornerperm[0] =
-		(unsigned short *)malloc(sizeof(unsigned short[N_TWIST][N_CORNERPERM]));
+		(unsigned short*)malloc(sizeof(unsigned short[N_TWIST][N_CORNERPERM]));
 	if (twist_on_cornerperm[0] == NULL)
 		exit_w_error_message("init_twist_on_cornerperm : couldn't get memory");
 
@@ -3121,10 +2915,8 @@ void  init_twist_on_cornerperm(void)
 }
 
 
-/* ========================================================================= */
-void  sliceedge_unpack(int  sliceedge, int  array_out[12])
-/* ------------------------------------------------------------------------- */
 
+void  sliceedge_unpack(int  sliceedge, int  array_out[12])
 {
 	int                     temp_arr[4], ii, count;
 
@@ -3146,10 +2938,8 @@ void  sliceedge_unpack(int  sliceedge, int  array_out[12])
 }
 
 
-/* ========================================================================= */
-int  sliceedge_pack(int  array_in[12])
-/* ------------------------------------------------------------------------- */
 
+int  sliceedge_pack(int  array_in[12])
 {
 	int                     eloc_arr[12], temp_arr[4], ii, count;
 
@@ -3172,10 +2962,8 @@ int  sliceedge_pack(int  array_in[12])
 }
 
 
-/* ========================================================================= */
-int  twist_f_on_sliceedge(int  sliceedge)
-/* ------------------------------------------------------------------------- */
 
+int  twist_f_on_sliceedge(int  sliceedge)
 {
 	int                     temp_arr[12];
 
@@ -3187,10 +2975,8 @@ int  twist_f_on_sliceedge(int  sliceedge)
 }
 
 
-/* ========================================================================= */
-int  twist_r_on_sliceedge(int  sliceedge)
-/* ------------------------------------------------------------------------- */
 
+int  twist_r_on_sliceedge(int  sliceedge)
 {
 	int                     temp_arr[12];
 
@@ -3202,10 +2988,8 @@ int  twist_r_on_sliceedge(int  sliceedge)
 }
 
 
-/* ========================================================================= */
-int  twist_u_on_sliceedge(int  sliceedge)
-/* ------------------------------------------------------------------------- */
 
+int  twist_u_on_sliceedge(int  sliceedge)
 {
 	int                     temp_arr[12];
 
@@ -3217,10 +3001,8 @@ int  twist_u_on_sliceedge(int  sliceedge)
 }
 
 
-/* ========================================================================= */
-int  twist_b_on_sliceedge(int  sliceedge)
-/* ------------------------------------------------------------------------- */
 
+int  twist_b_on_sliceedge(int  sliceedge)
 {
 	int                     temp_arr[12];
 
@@ -3232,10 +3014,8 @@ int  twist_b_on_sliceedge(int  sliceedge)
 }
 
 
-/* ========================================================================= */
-int  twist_l_on_sliceedge(int  sliceedge)
-/* ------------------------------------------------------------------------- */
 
+int  twist_l_on_sliceedge(int  sliceedge)
 {
 	int                     temp_arr[12];
 
@@ -3247,10 +3027,8 @@ int  twist_l_on_sliceedge(int  sliceedge)
 }
 
 
-/* ========================================================================= */
-int  twist_d_on_sliceedge(int  sliceedge)
-/* ------------------------------------------------------------------------- */
 
+int  twist_d_on_sliceedge(int  sliceedge)
 {
 	int                     temp_arr[12];
 
@@ -3262,10 +3040,8 @@ int  twist_d_on_sliceedge(int  sliceedge)
 }
 
 
-/* ========================================================================= */
-void  init_twist_on_sliceedge(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_twist_on_sliceedge(void)
 {
 	int                     twist, sl;
 
@@ -3273,7 +3049,7 @@ void  init_twist_on_sliceedge(void)
 	/*  allocate and initialize global array    twist_on_sliceedge    */
 
 	twist_on_sliceedge[0] =
-		(unsigned short *)malloc(sizeof(unsigned short[N_TWIST][N_SLICEEDGE]));
+		(unsigned short*)malloc(sizeof(unsigned short[N_TWIST][N_SLICEEDGE]));
 	if (twist_on_sliceedge[0] == NULL)
 		exit_w_error_message("init_twist_on_sliceedge : couldn't get memory");
 
@@ -3324,10 +3100,8 @@ void  init_twist_on_sliceedge(void)
 }
 
 
-/* ========================================================================= */
-int  make_current(int  corner, int  edge, Search_data  *p_data)
-/* ------------------------------------------------------------------------- */
 
+int  make_current(int  corner, int  edge, Search_data* p_data)
 {
 	if (DIST(corner, edge) > p_data->depth)
 	{
@@ -3352,10 +3126,8 @@ int  make_current(int  corner, int  edge, Search_data  *p_data)
 }
 
 
-/* ========================================================================= */
-void  make_current_all(int  corner, int  edge, Search_data  *p_data)
-/* ------------------------------------------------------------------------- */
 
+void  make_current_all(int  corner, int  edge, Search_data* p_data)
 {
 	int                     sym, stab;
 
@@ -3376,10 +3148,8 @@ void  make_current_all(int  corner, int  edge, Search_data  *p_data)
 }
 
 
-/* ========================================================================= */
-void  make_neighbors_current(int  corner, int  edge, Search_data  *p_data)
-/* ------------------------------------------------------------------------- */
 
+void  make_neighbors_current(int  corner, int  edge, Search_data* p_data)
 {
 	int                     twist, new_edge, new_corner, sym;
 
@@ -3399,10 +3169,8 @@ void  make_neighbors_current(int  corner, int  edge, Search_data  *p_data)
 }
 
 
-/* ========================================================================= */
-int  neighbors_are_previous(int  corner, int  edge, Search_data  *p_data)
-/* ------------------------------------------------------------------------- */
 
+int  neighbors_are_previous(int  corner, int  edge, Search_data* p_data)
 {
 	int                     twist, new_edge, sym, new_corner;
 
@@ -3424,11 +3192,9 @@ int  neighbors_are_previous(int  corner, int  edge, Search_data  *p_data)
 }
 
 
-/* ========================================================================= */
+
 void  init_distance_table(int  edge_stabilizers[N_EDGEQUOT],
 	int  edge_multiplicities[N_EDGEQUOT])
-	/* ------------------------------------------------------------------------- */
-
 {
 	Search_data             sdata_struc;
 	int                     total_found_quot, corner, edge, ii, msg_given;
@@ -3436,7 +3202,7 @@ void  init_distance_table(int  edge_stabilizers[N_EDGEQUOT],
 
 	/*  allocate and initialize global array   distance   */
 
-	distance[0] = (unsigned char *)malloc(sizeof(unsigned char[N_DIST_CHARS]));
+	distance[0] = (unsigned char*)malloc(sizeof(unsigned char[N_DIST_CHARS]));
 	if (distance[0] == NULL)
 		exit_w_error_message("init_distance_table : couldn't get memory");
 
@@ -3501,13 +3267,11 @@ void  init_distance_table(int  edge_stabilizers[N_EDGEQUOT],
 }
 
 
-/* ========================================================================= */
-void  init_globals(void)
-/* ------------------------------------------------------------------------- */
 
+void  init_globals(void)
 {
-	int                    *edge_stabilizers;
-	int                    *edge_multiplicities;
+	int* edge_stabilizers;
+	int* edge_multiplicities;
 
 
 	printf("initializing transformation tables\n");
@@ -3517,7 +3281,7 @@ void  init_globals(void)
 	init_twist_on_corner();
 	init_sym_on_corner();
 
-	edge_stabilizers = (int *)malloc(sizeof(int[2 * N_EDGEQUOT]));
+	edge_stabilizers = (int*)malloc(sizeof(int[2 * N_EDGEQUOT]));
 	if (edge_stabilizers == NULL)
 		exit_w_error_message("init_globals : couldn't get memory");
 
@@ -3529,27 +3293,21 @@ void  init_globals(void)
 	printf("initializing distance table ... this will take several minutes\n");
 	init_distance_table(edge_stabilizers, edge_multiplicities);
 
-	free((void *)edge_stabilizers);
+	free((void*)edge_stabilizers);
 
 	return;
 }
 
 
-/* ========================================================================= */
-int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
-/* ------------------------------------------------------------------------- */
 
-/*  input:  string[]  */
-
+int  string_to_cube(char  string[], Cube* p_cube)
 {
 	char                    edge_str[12][3], corner_str[8][4];
 	int                     edge_arr[12], corner_arr[8];
-	int                     ii, jj, twist, flip, edge_par, corner_par, stat;
+	int                     ii, jj, twist, flip, edge_par, corner_par, error;
 
 
-	stat = 0;
-
-	// TMA changed sscanf to sscanf_s
+	error = 0;
 
 	if (sscanf_s(string, "%2s %2s %2s %2s %2s %2s %2s %2s %2s %2s %2s %2s %3s %3s %3s %3s %3s %3s %3s %3s",
 		edge_str[0], sizeof(edge_str[0]), edge_str[1], sizeof(edge_str[1]), edge_str[2], sizeof(edge_str[2]), edge_str[3], sizeof(edge_str[3]),
@@ -3558,8 +3316,7 @@ int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
 		corner_str[0], sizeof(corner_str[0]), corner_str[1], sizeof(corner_str[1]), corner_str[2], sizeof(corner_str[2]), corner_str[3], sizeof(corner_str[3]),
 		corner_str[4], sizeof(corner_str[4]), corner_str[5], sizeof(corner_str[5]), corner_str[6], sizeof(corner_str[6]), corner_str[7], sizeof(corner_str[7])) < 20)
 	{
-		if (give_err_msg)
-			printf("invalid input!\n");
+		printf("invalid input!\n");
 		return 1;
 	}
 
@@ -3573,9 +3330,8 @@ int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
 			}
 		if (jj == 24)
 		{
-			if (give_err_msg)
-				printf("invalid edge cubie: %s\n", edge_str[ii]);
-			stat = 1;
+			printf("invalid edge cubie: %s\n", edge_str[ii]);
+			error = 1;
 		}
 	}
 
@@ -3589,16 +3345,13 @@ int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
 			}
 		if (jj == 24)
 		{
-			if (give_err_msg)
-				printf("invalid corner cubie: %s\n", corner_str[ii]);
-			stat = 1;
+			printf("invalid corner cubie: %s\n", corner_str[ii]);
+			error = 1;
 		}
 	}
 
-	if (stat)
-		return stat;
-
-	/*  fill out the remaining oriented edges and corners  */
+	if (error)
+		return error;
 
 	for (ii = 12; ii < 24; ii++)
 		p_cube->edges[ii] = (12 + p_cube->edges[ii - 12]) % 24;
@@ -3610,20 +3363,18 @@ int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
 
 	if (perm_n_check(24, p_cube->edges))
 	{
-		if (give_err_msg)
-			printf("bad edge cubies\n");
-		stat = 1;
+		printf("Bad edge cubies\n");
+		error = 1;
 	}
 
 	if (perm_n_check(24, p_cube->corners))
 	{
-		if (give_err_msg)
-			printf("bad corner cubies\n");
-		stat = 1;
+		printf("Bad corner cubies\n");
+		error = 1;
 	}
 
-	if (stat)
-		return stat;
+	if (error)
+		return error;
 
 	flip = 0;
 	for (ii = 0; ii < 12; ii++)
@@ -3631,9 +3382,8 @@ int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
 
 	if ((flip % 2) != 0)
 	{
-		if (give_err_msg)
-			printf("flip any edge cubie!\n");
-		stat = 1;
+		printf("Illegal cube. You must flip any edge!\n");
+		error = 1;
 	}
 
 	twist = 0;
@@ -3644,10 +3394,8 @@ int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
 
 	if (twist != 0)
 	{
-		if (give_err_msg)
-			printf("twist any corner cubie %sclockwise!\n",
-				(twist == 1) ? "counter" : "");
-		stat = 1;
+		printf("Illegal cube. You must twist any corner cubie %sclockwise!\n", (twist == 1) ? "counter" : "");
+		error = 1;
 	}
 
 	for (ii = 0; ii < 12; ii++)
@@ -3662,24 +3410,21 @@ int  string_to_cube(char  string[], Cube  *p_cube, int  give_err_msg)
 
 	if (edge_par != corner_par)
 	{
-		if (give_err_msg)
-			printf("swap any two edge cubies or any two corner cubies!\n");
-		stat = 1;
+		printf("Illegal cube. You must swap any two edge cubies or any two corner cubies!\n");
+		error = 1;
 	}
 
-	return stat;
+	return error;
 }
 
 
-/* ========================================================================= */
-int  user_enters_cube(Cube  *p_cube)
-/* ------------------------------------------------------------------------- */
 
+int  user_enters_cube(Cube* p_cube)
 {
 	char                     line_str[256];
 
 
-	printf("\nenter cube (Ctrl-D to exit):\n");
+	printf("\nEnter cube (Ctrl-C to exit):\n");
 
 	line_str[0] = '\n';
 
@@ -3695,14 +3440,12 @@ int  user_enters_cube(Cube  *p_cube)
 		}
 	}
 
-	return string_to_cube(line_str, p_cube, 1);
+	return string_to_cube(line_str, p_cube);
 }
 
 
-/* ========================================================================= */
-void  calc_cube_urf(Cube  *p_cube)
-/* ------------------------------------------------------------------------- */
 
+void  calc_cube_urf(Cube* p_cube)
 {
 	cube_init(p_cube);
 	three_cycle(p_cube->edges, EDGE_UF, EDGE_FR, EDGE_RU);
@@ -3726,13 +3469,11 @@ void  calc_cube_urf(Cube  *p_cube)
 }
 
 
-/* ========================================================================= */
-void  cube_to_coset_coord(Cube  *p_cube, Coset_coord  *p_coset_coord)
-/* ------------------------------------------------------------------------- */
 
-/*  output:  *p_coset_coord  */
+void  cube_to_coset_coord(Cube* p_cube, Coset_coord* p_coset_coord)
 
-{
+
+/*  output:  *p_coset_coord  */ {
 	int                     corner_arr[8], edge_arr[12];
 	int                     ii, eflip, eloc, sym, corner;
 
@@ -3759,10 +3500,8 @@ void  cube_to_coset_coord(Cube  *p_cube, Coset_coord  *p_coset_coord)
 }
 
 
-/* ========================================================================= */
-void  process_full_cube(Full_cube  *p_cube)
-/* ------------------------------------------------------------------------- */
 
+void  process_full_cube(Full_cube* p_cube)
 {
 	Cube                    cube1, cube2, cube_urf;
 	int                     edges_to_ud[12], edges_to_rl[12], edges_to_fb[12];
@@ -3825,11 +3564,9 @@ void  process_full_cube(Full_cube  *p_cube)
 }
 
 
-/* ========================================================================= */
-void  set_cube_symmetry(Full_cube  *p_cube, Cube  sym_cubes[N_CUBESYM],
-	int  subgroup_list[N_SYMSUBGRP][N_CUBESYM])
-	/* ------------------------------------------------------------------------- */
 
+void  set_cube_symmetry(Full_cube* p_cube, Cube  sym_cubes[N_CUBESYM],
+	int  subgroup_list[N_SYMSUBGRP][N_CUBESYM])
 {
 	Cube                    temp_cube;
 	int                     subgroup[N_CUBESYM], sym, count;
@@ -3865,15 +3602,13 @@ void  set_cube_symmetry(Full_cube  *p_cube, Cube  sym_cubes[N_CUBESYM],
 }
 
 
-/* ========================================================================= */
-void  output_solution(Search_node  *node_arr)
-/* ------------------------------------------------------------------------- */
 
+void  output_solution(Search_node* node_arr)
 {
-	static char            *twist_string[] = { "F ", "F2", "F'", "R ", "R2", "R'",
+	static char* twist_string[] = { "F ", "F2", "F'", "R ", "R2", "R'",
 		"U ", "U2", "U'", "B ", "B2", "B'",
 		"L ", "L2", "L'", "D ", "D2", "D'" };
-	Search_node            *p_node;
+	Search_node* p_node;
 	int                     turn_list[MAX_TWISTS];
 	int                     ii, count, q_length, f_length;
 
@@ -3906,12 +3641,10 @@ void  output_solution(Search_node  *node_arr)
 }
 
 
-/* ========================================================================= */
-int  test_for_solution(Full_cube  *p_cube, Search_node  *node_arr)
-/* ------------------------------------------------------------------------- */
 
+int  test_for_solution(Full_cube* p_cube, Search_node* node_arr)
 {
-	register Search_node   *p_node;
+	register Search_node* p_node;
 	register int            cornerperm, sliceedge;
 
 
@@ -3951,12 +3684,10 @@ int  test_for_solution(Full_cube  *p_cube, Search_node  *node_arr)
 }
 
 
-/* ========================================================================= */
-void  search_tree(Full_cube  *p_cube, Search_node  *node_arr)
-/* ------------------------------------------------------------------------- */
 
+void  search_tree(Full_cube* p_cube, Search_node* node_arr)
 {
-	register Search_node   *p_node;
+	register Search_node* p_node;
 	register int            twist, virtual_twist, new_sym_factor;
 
 
@@ -4054,10 +3785,8 @@ void  search_tree(Full_cube  *p_cube, Search_node  *node_arr)
 }
 
 
-/* ========================================================================= */
-void  calc_sym_cubes(Cube  sym_conj[N_CUBESYM])
-/* ------------------------------------------------------------------------- */
 
+void  calc_sym_cubes(Cube  sym_conj[N_CUBESYM])
 {
 	int                     ii;
 
@@ -4146,10 +3875,8 @@ void  calc_sym_cubes(Cube  sym_conj[N_CUBESYM])
 }
 
 
-/* ========================================================================= */
-void  pretty_print_unsigned_int(unsigned int  nn)
-/* ------------------------------------------------------------------------- */
 
+void  pretty_print_unsigned_int(unsigned int  nn)
 {
 	int                     digits[4], ii, started;
 
@@ -4202,10 +3929,8 @@ void  pretty_print_unsigned_int(unsigned int  nn)
 }
 
 
-/* ========================================================================= */
-void  solve_cube(Cube  *p_cube)
-/* ------------------------------------------------------------------------- */
 
+void  solve_cube(Cube* p_cube)
 {
 	static Cube             sym_cubes[N_CUBESYM];
 	static int              subgroup_list[N_SYMSUBGRP][N_CUBESYM];
@@ -4225,13 +3950,12 @@ void  solve_cube(Cube  *p_cube)
 	print_cube(p_cube);
 	if (cube_is_solved(p_cube))
 	{
-		printf("cube is already solved!\n");
+		printf("Cube is already solved!\n");
 		return;
 	}
 
 	cube_conjugate(p_cube, &sym_cubes[0], &full_cube_struct.cubies);
 	process_full_cube(&full_cube_struct);
-
 	set_cube_symmetry(&full_cube_struct, sym_cubes, subgroup_list);
 
 	node_arr[0].follow_type = 1 + full_cube_struct.sym_subgrp;
@@ -4284,21 +4008,16 @@ void  solve_cube(Cube  *p_cube)
 }
 
 
-/* ========================================================================= */
-int  main(void)
-/* ------------------------------------------------------------------------- */
 
+int  main(void)
 {
 	Metric_data             metric_data;
 	Options                 user_options;
 	Cube                    cube_struct;
 	int                     stat;
 
-
 	init_options(&metric_data, &user_options);
 	init_globals();
-
-	signal(SIGINT, SIG_IGN);
 
 	while (1)
 	{
@@ -4308,18 +4027,11 @@ int  main(void)
 
 		if (stat == 0)
 		{
-			// TMA removed this
-			//if (sigsetjmp(jump_env, 1) == 0)
-			//{
-				signal(SIGINT, user_interrupt);
-				solve_cube(&cube_struct);
-			//}
-
-			signal(SIGINT, SIG_IGN);
+			solve_cube(&cube_struct);
 		}
 	}
 
 	exit(EXIT_SUCCESS);
 
-	return 0;  /*  haha  */
+	return 0;
 }
